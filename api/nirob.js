@@ -17,12 +17,10 @@ export default async function handler(req, res) {
 
     const response = await axios.get(apiUrl, {
       headers: {
-        authority: "ytdl.socialplug.io",
-        accept: "application/json, text/plain, */*",
         origin: "https://www.socialplug.io",
         referer: "https://www.socialplug.io/",
         "user-agent":
-          "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Mobile Safari/537.36"
+          "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 Chrome Mobile Safari/537.36"
       }
     });
 
@@ -30,32 +28,25 @@ export default async function handler(req, res) {
 
     let videos = [];
 
-    // 🔥 Filter ONLY VIDEO formats
     const allFormats = [
-      ...(data.videoFormats || []),
-      ...(data.formats || [])
+      ...(data.formats || []),
+      ...(data.videoFormats || [])
     ];
 
     videos = allFormats
       .filter(f =>
         f.url &&
-        (
-          f.hasVideo === true ||
-          f.mimeType?.startsWith("video/") ||
-          f.qualityLabel
-        )
+        typeof f.mimeType === "string" &&
+        f.mimeType.includes("video")
       )
       .map(f => ({
-        quality: f.qualityLabel || "unknown",
+        quality: f.qualityLabel || f.quality || "unknown",
         mimeType: f.mimeType,
         url: f.url
       }));
 
     // remove duplicate urls
-    videos = videos.filter(
-      (v, i, self) =>
-        i === self.findIndex(x => x.url === v.url)
-    );
+    videos = [...new Map(videos.map(v => [v.url, v])).values()];
 
     return res.status(200).json({
       status: "success",
