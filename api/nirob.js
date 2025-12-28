@@ -19,7 +19,6 @@ export default async function handler(req, res) {
       headers: {
         authority: "ytdl.socialplug.io",
         accept: "application/json, text/plain, */*",
-        "accept-language": "en-US,en;q=0.9",
         origin: "https://www.socialplug.io",
         referer: "https://www.socialplug.io/",
         "user-agent":
@@ -27,19 +26,40 @@ export default async function handler(req, res) {
       }
     });
 
-    // ✅ OPTIONAL: filter only mp4 formats
     const data = response.data;
 
-    const videos =
-      data?.formats?.filter(
-        (f) => f.ext === "mp4" && f.url
-      ) || [];
+    // 🔍 Collect URLs from all possible places
+    let urls = [];
+
+    if (Array.isArray(data?.videoFormats)) {
+      urls = data.videoFormats
+        .filter(v => v.url)
+        .map(v => v.url);
+    }
+
+    if (Array.isArray(data?.audioFormats)) {
+      urls.push(
+        ...data.audioFormats
+          .filter(a => a.url)
+          .map(a => a.url)
+      );
+    }
+
+    if (Array.isArray(data?.formats)) {
+      urls.push(
+        ...data.formats
+          .filter(f => f.url)
+          .map(f => f.url)
+      );
+    }
+
+    // remove duplicates
+    urls = [...new Set(urls)];
 
     return res.status(200).json({
       status: "success",
       title: data.title,
-      duration: data.duration,
-      videos
+      urls
     });
   } catch (err) {
     return res.status(500).json({
@@ -48,4 +68,4 @@ export default async function handler(req, res) {
       error: err.message
     });
   }
-    }
+      }
